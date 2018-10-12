@@ -39,14 +39,14 @@ public class BulletinImporter {
      *return
      * throws
     */
-    BulletinImporter(String path) throws FileNotFoundException, IOException{
+    BulletinImporter(String path) throws IOException{
         this.path=path;
         vulnerabilityList= new ArrayList<>();
         updateReleasedBulletinsList();
 
         //Under Work
-        getPatchFromMonthly(releasedBulletins.get(0));
-        getPatchFromMonthly(releasedBulletins.get(1));
+
+        getPatchFromMonthly(releasedBulletins.get(3));
     }
 
     /**
@@ -56,7 +56,7 @@ public class BulletinImporter {
      *return
      * throws
      */
-    private void getPatchFromMonthly (String monthlyBulletinURL)throws FileNotFoundException, IOException{
+    private void getPatchFromMonthly (String monthlyBulletinURL)throws IOException{
         int hrefLineThreshold=0;
         int nbDebugLine=0;
         /** We will download using MiscUtils.Misc::downloadFromURL and then parse it to get the CVE and patch links */
@@ -93,7 +93,7 @@ public class BulletinImporter {
                         htmlLine = brTest.readLine();
                         htmlLine=htmlLine.replaceAll(".2F","\\/");
                         nbDebugLine+=1;
-                        Pattern patternhref=Pattern.compile("href=\"https:\\/\\/android.googlesource.com(\\/[A-Za-z0-9]+)+\\/\\+\\/[a-z0-9]+");
+                        Pattern patternhref=Pattern.compile("href\\s?=\\s?\"(https:)?\\/\\/android.googlesource.com(\\/([A-Za-z0-9]+\\-?\\_?)+)+\\/\\+\\/[a-z0-9]+");
                         Matcher mhref=patternhref.matcher(htmlLine);
                         boolean valueMatch=mhref.find();
                         exitTable=m.find();
@@ -114,9 +114,9 @@ public class BulletinImporter {
                         }
 
                     }
-                    if (nbDebugLine>=1974) {
-                     //   System.out.println(nbDebugLine);
-                    }
+                    //if (nbDebugLine>=1025) {
+                       //System.out.println(nbDebugLine);
+                   // }
                     if (localVulnerabilityList!= null && localVulnerabilityList.size()>1  ){
                         this.vulnerabilityList.add(localVulnerabilityList);
                     }
@@ -148,7 +148,7 @@ public class BulletinImporter {
     private void updateReleasedBulletinsList() throws FileNotFoundException , IOException {
         int currentYear=Year.now().getValue();
         String indexURL;
-        int yearCounter=2015;/** Starting year of the bulletins*/
+        int yearCounter;/** Starting year of the bulletins*/
         releasedBulletins=new ArrayList<>();
         for (yearCounter=2015;yearCounter<=currentYear;yearCounter++){
             indexURL=this.baseUrl+this.indexUrlPath+String.valueOf(yearCounter);
@@ -197,13 +197,13 @@ public class BulletinImporter {
      * return
      * throws
      */
-    private void testFetchingURLs(String path) throws FileNotFoundException, IOException{
+    private void testFetchingURLs(String path) throws IOException{
         this.path=path;
         vulnerabilityList= new ArrayList<>();
         updateReleasedBulletinsList();
         int[] counter=new int[releasedBulletins.size()];
         int totalRef=0;
-        int[] buffCounter=new int[]{17,13,30,9,21,11,29,20,25,23,30,19,18,32,11,11,7,16,20,8,34,30,40,16,21,22,33,23,29,23,25,14,10,20,6,19,16,7,20};
+        int[] buffCounter=new int[]{17,7,29,8,21,11,29,20,25,23,30,19,18,32,11,11,7,16,20,8,34,30,40,16,21,22,33,23,29,23,25,14,10,20,6,19,16,7,20};
         for (int i=0;i<buffCounter.length;i++){
             counter[i]=buffCounter[i];
             totalRef+=counter[i];
@@ -236,7 +236,7 @@ public class BulletinImporter {
      * return
      * throws
     */
-    public static void main(String[] args) throws FileNotFoundException, IOException{
+    public static void main(String[] args) throws IOException{
         String folderToDownloadIn= "/home/user1/Desktop/Tools/Vulnerabilities/test/listBulletins";
         BulletinImporter bImporter=new BulletinImporter(folderToDownloadIn);
 
