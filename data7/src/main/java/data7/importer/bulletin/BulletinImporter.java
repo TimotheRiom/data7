@@ -357,7 +357,7 @@ public class BulletinImporter {
         updateReleasedBulletinsList();
         int[] counter=new int[releasedBulletins.size()];
         int totalRef=0;
-        int[] buffCounter=new int[]{21,9,30,13,17,7,11,11,32,18,19,30,23,25,20,29,11,29,23,33,22,21,16,40,30,34,8,20,16,20,7,16,19,6,20,10,14,25,23};
+        int[] buffCounter=new int[]{21,8,29,7,17,7,11,11,32,18,19,30,23,25,20,29,11,29,23,33,22,21,16,40,30,34,8,20,16,20,7,16,19,6,20,10,14,25,23};
         for (int i=0;i<buffCounter.length;i++){
             counter[i]=buffCounter[i];
             totalRef+=counter[i];
@@ -445,7 +445,7 @@ public class BulletinImporter {
         String folderToDownloadIn= "/home/user1/Desktop/Tools/Vulnerabilities/test/listBulletins";
         BulletinImporter bImporter=new BulletinImporter(folderToDownloadIn);
 
-     //   bImporter.testFetchingURLs(folderToDownloadIn);
+        bImporter.testFetchingURLs(folderToDownloadIn);
         //bImporter.getVulnerabilityComponents((bImporter.vulnerabilityList).get(6));
         //bImporter.testFetchingComponents();
         bImporter.testComponentsCounter();
