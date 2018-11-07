@@ -1,13 +1,13 @@
-package data7.importer.bulletin;
+package data7.importer.sources.bulletin;
 
 
-import data7.Resources;
 import miscUtils.Misc;
-import org.jetbrains.annotations.NotNull;
+import org.eclipse.jgit.util.FileUtils;
 
 import java.io.BufferedReader;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
+import java.io.File;
 import java.io.IOException;
 import java.time.Year;
 import java.util.*;
@@ -15,6 +15,8 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import static data7.Utils.checkFolderDestination;
+import static data7.Utils.deleteDir;
+
 /**
 
 
@@ -42,10 +44,16 @@ public class BulletinImporter {
     BulletinImporter(String path) throws IOException{
         this.path=path;
         vulnerabilityList= new ArrayList<>();
-        updateReleasedBulletinsList();
         int testIndex;
 
+        checkForNewBulletin();
+        releasedBulletins=loadReleasedBulletin(this.path);
+
         for (testIndex=0;testIndex<releasedBulletins.size();testIndex++) {
+
+            //if (testIndex==39)
+            //    System.out.println("ola");
+
 
             getPatchFromMonthly(releasedBulletins.get(testIndex));
             //System.out.println("Unitary Test--bulletin " + testIndex + ":  |" + this.vulnerabilityList.size() + "|");
@@ -240,6 +248,115 @@ public class BulletinImporter {
     }
 
     /**
+     * check for new bulletin and update list
+     *
+     *param
+     *return
+     * throws
+     */
+    private List<String> loadReleasedBulletin(String source) throws IOException {
+        int currentYear=Year.now().getValue();
+        List<String> localBulletins= new ArrayList<>();
+
+        for (int yearCounter=2015;yearCounter<=currentYear;yearCounter++) {
+            String yearIndexLoc=source+"/"+Integer.toString(yearCounter);
+
+            //prevent the case on the first bulletin of June by creating the file if it does not exist
+            File f = new File(yearIndexLoc);
+            if (!(f.exists() && f.isFile())) {
+                f.createNewFile();
+            }
+
+            FileReader fReader = new FileReader(yearIndexLoc );
+            BufferedReader brTest = new BufferedReader(fReader);
+            String htmlLine = brTest.readLine();
+            while (htmlLine!=null){
+                Pattern pattern=Pattern.compile(regexpURL);
+                Matcher m= pattern.matcher(htmlLine);
+                if (m.find()){
+                    String matchedURL=baseUrl+m.group(0).substring(0,m.group(0).length()-9);
+                    //releasedBulletins.add(matchedURL);
+                    //System.out.println("--DEBUGLINE--"+matchedURL);
+
+                    int bulletinDate =extractDate(matchedURL);
+
+                    //System.out.println("--DEBUGLINE--"+bulletinDate);
+
+                    int bufferToRename=1;
+
+                    while (bufferToRename <=localBulletins.size() ){
+                        if ( bulletinDate > extractDate(localBulletins.get(localBulletins.size()-bufferToRename))){
+                            localBulletins.add(localBulletins.size()-bufferToRename+1,matchedURL);
+                            bufferToRename=localBulletins.size()+1;//get out of the loop in a non explicit way
+                        }else{
+                            if (localBulletins.size()==bufferToRename){
+                                localBulletins.add(0,matchedURL);
+                                bufferToRename=localBulletins.size();
+                            }
+                            bufferToRename+=1;
+                        }
+                    }
+                    if(localBulletins.size()==0){
+                        localBulletins.add(matchedURL);
+                    }
+                }
+                htmlLine = brTest.readLine();
+            }
+        }
+        return localBulletins;
+    }
+
+    /**
+     * check for new bulletin and update list
+     *
+     *param
+     *return
+     * throws
+     */
+    private void checkForNewBulletin() throws IOException{
+
+        String dlPath=this.path+"/Monthly/";
+        checkFolderDestination(dlPath);
+        List<String> localBulletins= new ArrayList<>();
+        int nbLocalBulletin=0, dlBulletin=0;
+        int currentYear=Year.now().getValue();
+
+        //get the number of downloaded Bulletin in this.path+"/Monthly/"
+        localBulletins=loadReleasedBulletin(this.path);
+
+        nbLocalBulletin=localBulletins.size();
+        //get the number of online bulletins
+            String repoName=this.path+"/temp";
+            //create a tempo/buffer repo
+             checkFolderDestination(repoName);
+            //download
+            int yearCounter;// Starting year of the bulletins*/
+
+            for (yearCounter=2015;yearCounter<=currentYear;yearCounter++) {
+                String indexURL = this.baseUrl + this.indexUrlPath + String.valueOf(yearCounter);
+                checkFolderDestination(repoName);
+            //DownloadPage
+                Misc.downloadFromURL((indexURL),repoName);
+             }
+            //loadNumber
+            dlBulletin=loadReleasedBulletin(repoName).size();
+            //delete the repo
+            deleteDir(repoName);
+
+        //Compare
+        if (nbLocalBulletin==dlBulletin){
+            //everything alright
+            System.out.println("No need for update");
+        }else if(nbLocalBulletin<dlBulletin){
+            //upload and save the saved bulletins
+            updateReleasedBulletinsList();
+            System.out.println("Update done");
+        }else {
+            //warn of problem
+        }
+    }
+
+    /**
      * In order to order Bulletin because google mixes the way they are ordered
      *
      *param
@@ -284,6 +401,58 @@ public class BulletinImporter {
 
         }
         return componentList;
+
+    }
+
+    /**
+     * param the URL of the commit as a string
+     *return the extracted hash of the commit
+     * throws
+     */
+    public String getComponent(String URL){
+        Pattern componentPattern= Pattern.compile("(\\/([A-Za-z0-9]+\\-?\\_?)+)+\\/\\+\\/.+");
+        //Skipping first element
+        String matched=null ,hash=null ;
+
+        Matcher componentMatcher = componentPattern.matcher(URL);
+        //TODO remove condition
+        if (componentMatcher.find()) {
+            matched = componentMatcher.group(0);
+            Pattern hashPattern=Pattern.compile("(\\/([A-Za-z0-9]+\\-?\\_?)+)+");
+            Matcher hashM = hashPattern.matcher(matched);
+            if (hashM.find()){
+                hash=hashM.group(0);
+            }
+        }
+        return hash;
+    }
+
+
+
+    /**
+     * param the URL of the commit as a string
+     *return the extracted hash of the commit
+     * throws
+     */
+    public String getCommitHash(String URL){
+        Pattern componentPattern= Pattern.compile("(\\/([A-Za-z0-9]+\\-?\\_?)+)+\\/\\+\\/.+");
+        //Skipping first element
+        String matched=null ,hash=null ;
+
+        Matcher componentMatcher = componentPattern.matcher(URL);
+        //TODO remove condition
+        if (componentMatcher.find()) {
+            matched = componentMatcher.group(0);
+            Pattern hashPattern=Pattern.compile("\\/\\+\\/.+");
+            Matcher hashM = hashPattern.matcher(matched);
+            if (hashM.find()){
+                hash=hashM.group(0).substring(3);
+            }
+        }
+
+
+
+        return hash;
 
     }
 
@@ -343,7 +512,82 @@ public class BulletinImporter {
         return sortedByLocCVEs;
     }
 
+    /**
+     *
+     * params
+     * return HashMap for which the number of  vulnerability components (/location) is linked to the name of the component
+     * throws
+     */
+    public Map<String, Map<String, List<String>>>  cveCompHashSorter(){
+        Map<String, Map<String, List<String>>> sortedByCVEs=new HashMap<>();
+        Map<String, List<String>> mergedOnCVEMap =new HashMap<>();
 
+        mergedOnCVEMap=mergeOnKey(vulnerabilityList);
+
+        //for each CVE, split the URLs into <component,<hashes>>
+        mergedOnCVEMap.forEach((CVE, listOfURL) ->{
+            Map<String, List<String>> mergedOnComponentMap =new HashMap<>();
+            List<List<String>> listBeforeMerge=new ArrayList<>();
+
+            listOfURL.forEach(( url) ->{
+                //from List<String> to List<List<String>> wih split component ,hash
+                List<String> splitCompHash= new ArrayList<>();
+                splitCompHash.add(getComponent(url));
+                splitCompHash.add(getCommitHash(url));
+                listBeforeMerge.add(splitCompHash);
+            });
+            //merge if any CVE has the same component several time
+            mergedOnComponentMap=mergeOnKey(listBeforeMerge);
+            sortedByCVEs.put(CVE,mergedOnComponentMap);
+        });
+
+        return sortedByCVEs;
+    }
+
+    /**
+     *
+     * params
+     * return HashMap for which the number of  vulnerability components (/location) is linked to the name of the component
+     * throws
+     */
+    public Map<String, List<String>> mergeOnKey(List<List<String>> listToRefactor ){
+        Map<String, List<String>> refactoredMap=new HashMap<>();
+
+
+        int listExplorer1=0, listExplorer2=0;
+        List<Integer> exclusionList=new ArrayList<>();
+        int matchURLExplorer;
+        Map<String, List<String>> bufCompoHashes=new HashMap<>();//will store <CVE,<URLs>>
+        //look for each entry/CVE/vulnerability
+        for (listExplorer1=0; listExplorer1<listToRefactor.size();listExplorer1++){
+            List<String> urlList=new ArrayList<>();
+            //skipp the already merged entries
+            if (!exclusionList.contains(listExplorer1)){
+
+                //add  the urls linked with this CVE/vulnerability inside bufCompoHash
+                for (matchURLExplorer=1;matchURLExplorer<listToRefactor.get(listExplorer1).size();matchURLExplorer++){
+                    urlList.add(listToRefactor.get(listExplorer1).get(matchURLExplorer));
+                }
+
+                for (listExplorer2=listExplorer1+1; listExplorer2<listToRefactor.size();listExplorer2++) {
+                    //check for CVE equality
+                    if (listToRefactor.get(listExplorer1).get(0).equals( listToRefactor.get(listExplorer2).get(0))) {
+                        //to prevent listExplorer1 from passing by listExplorer2 if there is a match
+                        exclusionList.add(listExplorer2);
+
+                        //vulnerabilityList is a List<List<String>> starting by CVE, then urls related
+                        for (matchURLExplorer=1;matchURLExplorer<listToRefactor.get(listExplorer2).size();matchURLExplorer++){
+                            //add the urls to vulnerabilityList.get(listExplorer1)'s url list
+                            urlList.add(listToRefactor.get(listExplorer2).get(matchURLExplorer));
+                        }
+                    }
+                }
+                refactoredMap.put(listToRefactor.get(listExplorer1).get(0), urlList);
+            }
+            //then add the resulting CVE,<URLs> to sortedByCVEs
+        }
+        return refactoredMap;
+    }
 
     /**
      * testing the number of patch fetch in each monthly bulletin
@@ -357,7 +601,7 @@ public class BulletinImporter {
         updateReleasedBulletinsList();
         int[] counter=new int[releasedBulletins.size()];
         int totalRef=0;
-        int[] buffCounter=new int[]{21,8,29,7,17,7,11,11,32,18,19,30,23,25,20,29,11,29,23,33,22,21,16,40,30,34,8,20,16,20,7,16,19,6,20,10,14,25,23};
+        int[] buffCounter=new int[]{21,8,29,7,17,7,11,11,32,18,19,30,23,25,20,29,11,29,23,33,22,21,16,40,30,34,8,20,16,20,7,16,19,6,20,10,14,25,23,19};
         for (int i=0;i<buffCounter.length;i++){
             counter[i]=buffCounter[i];
             totalRef+=counter[i];
@@ -437,18 +681,35 @@ public class BulletinImporter {
     }
 
     /**
+     * testing the sorting of components
+     * params
+     * return
+     * throws
+     */
+    private List<List<String>> getVulnerabilityList(){
+        return vulnerabilityList;
+    }
+
+    /**
      * param
      * return
      * throws
     */
     public static void main(String[] args) throws IOException{
         String folderToDownloadIn= "/home/user1/Desktop/Tools/Vulnerabilities/test/listBulletins";
+
+
         BulletinImporter bImporter=new BulletinImporter(folderToDownloadIn);
 
-        bImporter.testFetchingURLs(folderToDownloadIn);
+
+
+
+        //bImporter.testFetchingURLs(folderToDownloadIn);
         //bImporter.getVulnerabilityComponents((bImporter.vulnerabilityList).get(6));
         //bImporter.testFetchingComponents();
-        bImporter.testComponentsCounter();
-        bImporter.testComponentsSorter();
+        //bImporter.testComponentsCounter();
+        //bImporter.testComponentsSorter();
+        //bImporter.getCommitHash(bImporter.getVulnerabilityList().get(0).get(1));
+        bImporter.cveCompHashSorter();
     }
 }

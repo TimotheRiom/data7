@@ -149,6 +149,19 @@ public class Utils {
         return ;
     }
 
+    /**
+     * delete folder
+     *
+     * @param repoName folder
+     */
+    public static void deleteDir(String repoName){
+        File dir = new File(repoName);
+        File[] listFiles = dir.listFiles();
+        for(File file : listFiles){
+            file.delete();
+        }
+        //now directory is empty, so we can delete it
+        dir.delete();
 
-
+    }
 }

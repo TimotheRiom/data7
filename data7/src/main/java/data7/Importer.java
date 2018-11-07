@@ -24,6 +24,7 @@ package data7;
 import data7.importer.Data7Importer;
 import data7.model.Data7;
 import data7.project.AndroidMetaInf;
+import data7.project.CMetaInf;
 import data7.project.Project;
 import data7.project.ProjectFactory;
 
@@ -57,7 +58,7 @@ public class Importer {
      * @throws ClassNotFoundException
      */
     public static void main(String[] args) throws ParseException, IOException, ClassNotFoundException {
-        ResourcesPath path = new ResourcesPath("/Users/matthieu/Desktop/data3/");
+        ResourcesPath path = new ResourcesPath("/home/user1/Desktop/Tools/Vulnerabilities/TimotheRiom/data7");
         Importer importer = new Importer(path);
 
 
