@@ -34,6 +34,9 @@ public class BulletinImporter {
     private String regexpURL="/security/bulletin/[0-9]{4}-[0-9]{2}-[0-9]{2}.html\">English";
     private List<List<String>> vulnerabilityList;
 
+    //TODO to change for eache device
+    private  String localDLFolder= "/home/user1/Desktop/Tools/Vulnerabilities/test/listBulletins";
+
     /**
      *
      *
@@ -43,6 +46,33 @@ public class BulletinImporter {
     */
     BulletinImporter(String path) throws IOException{
         this.path=path;
+        vulnerabilityList= new ArrayList<>();
+        int testIndex;
+
+        checkForNewBulletin();
+        releasedBulletins=loadReleasedBulletin(this.path);
+
+        for (testIndex=0;testIndex<releasedBulletins.size();testIndex++) {
+
+            //if (testIndex==39)
+            //    System.out.println("ola");
+
+
+            getPatchFromMonthly(releasedBulletins.get(testIndex));
+            //System.out.println("Unitary Test--bulletin " + testIndex + ":  |" + this.vulnerabilityList.size() + "|");
+
+        }
+    }
+
+    /**
+     *Overcharging the constructor in case
+     *
+     *param of no path given
+     *return
+     * throws
+     */
+    BulletinImporter() throws IOException{
+        this.path=localDLFolder;
         vulnerabilityList= new ArrayList<>();
         int testIndex;
 
@@ -601,6 +631,7 @@ public class BulletinImporter {
         updateReleasedBulletinsList();
         int[] counter=new int[releasedBulletins.size()];
         int totalRef=0;
+        //number of cve referenced per page
         int[] buffCounter=new int[]{21,8,29,7,17,7,11,11,32,18,19,30,23,25,20,29,11,29,23,33,22,21,16,40,30,34,8,20,16,20,7,16,19,6,20,10,14,25,23,19};
         for (int i=0;i<buffCounter.length;i++){
             counter[i]=buffCounter[i];
@@ -610,7 +641,7 @@ public class BulletinImporter {
         int counterOfMismatch=0;
         int totalMatch=0;
 
-        //Under Work
+        //Get patches and check number
         for (testIndex=0;testIndex<releasedBulletins.size();testIndex++){
 
             getPatchFromMonthly(releasedBulletins.get(testIndex));
@@ -624,8 +655,6 @@ public class BulletinImporter {
         }
 
         System.out.println("TEST RESULTS: "+(releasedBulletins.size()-counterOfMismatch)+"/"+releasedBulletins.size()+"   ||   "+totalMatch+"/"+totalRef);
-
-
     }
 
     /**
@@ -696,14 +725,14 @@ public class BulletinImporter {
      * throws
     */
     public static void main(String[] args) throws IOException{
-        String folderToDownloadIn= "/home/user1/Desktop/Tools/Vulnerabilities/test/listBulletins";
+        //String folderToDownloadIn= "/home/user1/Desktop/Tools/Vulnerabilities/test/listBulletins";
 
 
-        BulletinImporter bImporter=new BulletinImporter(folderToDownloadIn);
+        BulletinImporter bImporter=new BulletinImporter();
 
 
 
-
+        // List of Tests
         //bImporter.testFetchingURLs(folderToDownloadIn);
         //bImporter.getVulnerabilityComponents((bImporter.vulnerabilityList).get(6));
         //bImporter.testFetchingComponents();

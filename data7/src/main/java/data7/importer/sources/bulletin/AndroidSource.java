@@ -18,7 +18,7 @@ public class AndroidSource extends Data7Source {
 
     private Map<String, Map<String, List<String>>> getCommitFromBulletin() throws IOException {
         //TODO Tim
-        BulletinImporter bulletinImp=new BulletinImporter("/home/user1/Desktop/Tools/Vulnerabilities/test/listBulletins");
+        BulletinImporter bulletinImp=new BulletinImporter();
 
         return bulletinImp.cveCompHashSorter();
     }
