@@ -1,4 +1,4 @@
-package data7.importer.sources.bulletin;
+package data7.plugins.android;
 
 
 import miscUtils.Misc;

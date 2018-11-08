@@ -2,7 +2,7 @@ package data7.plugins.android;
 
 import data7.Data7UpdateListener;
 import data7.Exporter;
-import data7.Importer;
+import data7.plugins.android.*;
 import data7.ResourcesPath;
 import data7.importer.Data7Importer;
 import data7.model.Data7;
