@@ -1,10 +1,11 @@
-package data7.plugins.android;
+package data7.importer.sources.bulletin;
 
 import data7.importer.Data7Source;
 import data7.model.change.Commit;
 import data7.model.vulnerability.Vulnerability;
 import data7.project.MetaInformation;
 
+import java.io.IOException;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -15,15 +16,23 @@ public class AndroidSource extends Data7Source {
     public static String NAME = "ANDROID ANALYSIS";
 
 
-    private Map<String, Map<String, List<String>>> getCommitFromBulletin() {
+    private Map<String, Map<String, List<String>>> getCommitFromBulletin() throws IOException {
         //TODO Tim
-        return null;
+        BulletinImporter bulletinImp=new BulletinImporter("/home/user1/Desktop/Tools/Vulnerabilities/test/listBulletins");
+
+        return bulletinImp.cveCompHashSorter();
     }
 
     @Override
     public void process() {
-        addToData7(getCommitFromBulletin());
+        try {
+            addToData7(getCommitFromBulletin());
+
+        }catch (IOException e){
+            System.out.println(e);
+        }
     }
+
 
     @Override
     public String sourceName() {
