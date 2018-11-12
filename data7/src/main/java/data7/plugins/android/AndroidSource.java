@@ -15,11 +15,13 @@ import static data7.Utils.generateCommitOfInterest;
 public class AndroidSource extends Data7Source {
     public static String NAME = "ANDROID ANALYSIS";
 
+    //public AndroidSource(){
+    //    process();
+    //}
 
     private Map<String, Map<String, List<String>>> getCommitFromBulletin() throws IOException {
         //TODO Tim
         BulletinImporter bulletinImp=new BulletinImporter();
-
         return bulletinImp.cveCompHashSorter();
     }
 
