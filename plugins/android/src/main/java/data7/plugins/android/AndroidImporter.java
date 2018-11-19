@@ -2,7 +2,7 @@ package data7.plugins.android;
 
 import data7.Data7UpdateListener;
 import data7.Exporter;
-import data7.Importer;
+import data7.plugins.android.*;
 import data7.ResourcesPath;
 import data7.importer.Data7Importer;
 import data7.model.Data7;
@@ -23,6 +23,10 @@ public class AndroidImporter {
     }
 
     public static void main(String[] args) throws ParseException, IOException, ClassNotFoundException {
+        if (args.length == 0) {
+            args=new String[1];
+            args[0]= "/home/user1/Desktop/Tools/Vulnerabilities/test/tempoRepo/";
+        }
         if (args.length == 1) {
             ResourcesPath rpath = new ResourcesPath(args[0]);
             Data7 data7 = generateAndroidProject(rpath);

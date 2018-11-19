@@ -1,4 +1,4 @@
-package data7.importer.sources.bulletin;
+package data7.plugins.android;
 
 
 import miscUtils.Misc;
@@ -34,7 +34,7 @@ public class BulletinImporter {
     private String regexpURL="/security/bulletin/[0-9]{4}-[0-9]{2}-[0-9]{2}.html\">English";
     private List<List<String>> vulnerabilityList;
 
-    //TODO to change for eache device
+    //TODO to change for each device
     private  String localDLFolder= "/home/user1/Desktop/Tools/Vulnerabilities/test/listBulletins";
 
     /**
@@ -48,9 +48,13 @@ public class BulletinImporter {
         this.path=path;
         vulnerabilityList= new ArrayList<>();
         int testIndex;
+        List<String[]> upDateTable;
+        List<String> dateList;
 
         checkForNewBulletin();
-        releasedBulletins=loadReleasedBulletin(this.path);
+        upDateTable=loadReleasedBulletin(this.path);
+        releasedBulletins=xEltsOfList(upDateTable, 0);
+        dateList=xEltsOfList(upDateTable,1);
 
         for (testIndex=0;testIndex<releasedBulletins.size();testIndex++) {
 
@@ -58,7 +62,7 @@ public class BulletinImporter {
             //    System.out.println("ola");
 
 
-            getPatchFromMonthly(releasedBulletins.get(testIndex));
+            getPatchFromMonthly(releasedBulletins.get(testIndex), dateList.get(testIndex));
             //System.out.println("Unitary Test--bulletin " + testIndex + ":  |" + this.vulnerabilityList.size() + "|");
 
         }
@@ -75,9 +79,14 @@ public class BulletinImporter {
         this.path=localDLFolder;
         vulnerabilityList= new ArrayList<>();
         int testIndex;
+        List<String[]> upDateTable;
+        List<String> dateList;
 
         checkForNewBulletin();
-        releasedBulletins=loadReleasedBulletin(this.path);
+        upDateTable=loadReleasedBulletin(this.path);
+        releasedBulletins=xEltsOfList(upDateTable, 0);
+        dateList=xEltsOfList(upDateTable,1);
+
 
         for (testIndex=0;testIndex<releasedBulletins.size();testIndex++) {
 
@@ -85,7 +94,7 @@ public class BulletinImporter {
             //    System.out.println("ola");
 
 
-            getPatchFromMonthly(releasedBulletins.get(testIndex));
+            getPatchFromMonthly(releasedBulletins.get(testIndex), dateList.get(testIndex));
             //System.out.println("Unitary Test--bulletin " + testIndex + ":  |" + this.vulnerabilityList.size() + "|");
 
         }
@@ -100,7 +109,7 @@ public class BulletinImporter {
      *return
      * throws
      */
-    private void getPatchFromMonthly (String monthlyBulletinURL)throws IOException{
+    private void getPatchFromMonthly (String monthlyBulletinURL, String upLastUpdate)throws IOException{
         int hrefLineThreshold=0;
         int rowspanThreshold=0;
         int nbDebugLine=0;
@@ -108,8 +117,29 @@ public class BulletinImporter {
         //Create Folder or check if exists*/
         String dlPath=this.path+"/Monthly/";
         checkFolderDestination(dlPath);
-        //DownloadPage*/
-        Misc.downloadFromURL((monthlyBulletinURL),dlPath);
+        //DownloadPage*/ if necessary
+        //read the date at which the local file was changed for the last time in YYYYMMDD
+        File monthlyHTML=new File(dlPath+"/"+monthlyBulletinURL.substring(45));
+        if (monthlyHTML.exists()){
+
+            Calendar lastUpdate=Calendar.getInstance();
+            lastUpdate.setTimeInMillis(monthlyHTML.lastModified());
+            //load the last time the bulletin was updated online
+
+            //pass each to integer
+            int localLastUpdateInt=Integer.valueOf( Integer.toString(lastUpdate.get(Calendar.YEAR))+Integer.toString(lastUpdate.get(Calendar.MONTH)+1)+Integer.toString(lastUpdate.get(Calendar.DAY_OF_MONTH)));
+            int upLastUpdateInt=Integer.valueOf(upLastUpdate.replace("-",""));
+            //compare
+            if(upLastUpdateInt>localLastUpdateInt || upLastUpdateInt==0 || localLastUpdateInt==0){
+                Misc.downloadFromURL((monthlyBulletinURL),dlPath);
+            }
+
+        }else{
+            //Bulletin not yet downloaded
+            Misc.downloadFromURL((monthlyBulletinURL),dlPath);
+        }
+
+
         //Parse and store URLs of patches*/
         FileReader fReader=new FileReader( dlPath+"/"+monthlyBulletinURL.substring(45) );
         BufferedReader brTest = new BufferedReader(fReader);
@@ -284,9 +314,11 @@ public class BulletinImporter {
      *return
      * throws
      */
-    private List<String> loadReleasedBulletin(String source) throws IOException {
+    private List<String[]> loadReleasedBulletin(String source) throws IOException {
         int currentYear=Year.now().getValue();
         List<String> localBulletins= new ArrayList<>();
+
+        List<String> updateL=new ArrayList<>();
 
         for (int yearCounter=2015;yearCounter<=currentYear;yearCounter++) {
             String yearIndexLoc=source+"/"+Integer.toString(yearCounter);
@@ -301,9 +333,11 @@ public class BulletinImporter {
             BufferedReader brTest = new BufferedReader(fReader);
             String htmlLine = brTest.readLine();
             while (htmlLine!=null){
+                //Find the monthly bulletin URL
                 Pattern pattern=Pattern.compile(regexpURL);
                 Matcher m= pattern.matcher(htmlLine);
                 if (m.find()){
+                    //Monthly URL found
                     String matchedURL=baseUrl+m.group(0).substring(0,m.group(0).length()-9);
                     //releasedBulletins.add(matchedURL);
                     //System.out.println("--DEBUGLINE--"+matchedURL);
@@ -329,15 +363,79 @@ public class BulletinImporter {
                     if(localBulletins.size()==0){
                         localBulletins.add(matchedURL);
                     }
+
+                    int tdCounter=0;
+                    Pattern tdPattern=Pattern.compile("</td>");
+                    while(tdCounter!=2){
+                        Matcher tdM= tdPattern.matcher(htmlLine);
+                        if (tdM.find()){
+                            tdCounter+=1;
+                        }
+                        else{
+                            //nextline
+                            htmlLine = brTest.readLine();
+                        }
+                    }
+                    //The line does not contain a monthly bulletin URL so we will look for the last update ...date
+                    Pattern updatePattern=Pattern.compile("20[0-9]{2}-[0-9]{2}-[0-9]{2}");
+                    int updateMatched=0;
+                    while (updateMatched==0) {
+                        Matcher upDatem = updatePattern.matcher(htmlLine);
+                        if (upDatem.find()) {
+                            //We found a date in the right format but is it the latest for this bulletin ?
+                            while (!htmlLine.contains("</td>")){
+                                htmlLine = brTest.readLine();
+                                upDatem = updatePattern.matcher(htmlLine);
+                                upDatem.find();
+                            }
+                            //add it in the right position
+                            int index=0;
+                            if (updateL.size()>0) {
+                                while (index < updateL.size() && Integer.valueOf(upDatem.group(0).replace("-", "")) > Integer.valueOf(updateL.get(index).replace("-", "")) ) {
+                                    index++;
+                                }
+                                if(index==updateL.size() ){
+                                    updateL.add(upDatem.group(0));
+                                }else {
+                                    updateL.add(index, upDatem.group(0));
+                                }
+                            }else{
+                                updateL.add(upDatem.group(0));
+                            }
+
+
+                            //updateL.add(upDatem.group(0));
+                            updateMatched = 1;
+                        } else if (htmlLine.contains("N/A")) {
+                            updateL.add(0,"0");
+                            updateMatched = 1;
+                        } else {
+                            //nextline
+                            htmlLine = brTest.readLine();
+                        }
+                    }
                 }
+
                 htmlLine = brTest.readLine();
             }
         }
-        return localBulletins;
+        //Alter the list to fit in List<String[2]>
+        //Where the first is the url and the second is the date of last update
+        //can be extracted with xEltOfList(List<String[2], int)
+        List<String[]> listToReturn=new ArrayList<>();
+        int index;
+        for (index=0;index<localBulletins.size();index++){
+            String[] tempLine= new String[2];
+            tempLine[0]=localBulletins.get(index);
+            tempLine[1]=updateL.get(index);
+            listToReturn.add(tempLine);
+        }
+
+        return listToReturn;
     }
 
     /**
-     * check for new bulletin and update list
+     * check for new bulletin and update list in releasedBulletins
      *
      *param
      *return
@@ -352,7 +450,7 @@ public class BulletinImporter {
         int currentYear=Year.now().getValue();
 
         //get the number of downloaded Bulletin in this.path+"/Monthly/"
-        localBulletins=loadReleasedBulletin(this.path);
+        localBulletins=xEltsOfList(loadReleasedBulletin(this.path),0);
 
         nbLocalBulletin=localBulletins.size();
         //get the number of online bulletins
@@ -442,19 +540,19 @@ public class BulletinImporter {
     public String getComponent(String URL){
         Pattern componentPattern= Pattern.compile("(\\/([A-Za-z0-9]+\\-?\\_?)+)+\\/\\+\\/.+");
         //Skipping first element
-        String matched=null ,hash=null ;
+        String matched=null ,component=null ;
 
         Matcher componentMatcher = componentPattern.matcher(URL);
         //TODO remove condition
         if (componentMatcher.find()) {
             matched = componentMatcher.group(0);
-            Pattern hashPattern=Pattern.compile("(\\/([A-Za-z0-9]+\\-?\\_?)+)+");
-            Matcher hashM = hashPattern.matcher(matched);
-            if (hashM.find()){
-                hash=hashM.group(0);
+            Pattern compoPattern=Pattern.compile("(\\/([A-Za-z0-9]+\\-?\\_?)+)+");
+            Matcher compoM = compoPattern.matcher(matched);
+            if (compoM.find()){
+                component=compoM.group(0).substring(1);
             }
         }
-        return hash;
+        return component;
     }
 
 
@@ -620,6 +718,25 @@ public class BulletinImporter {
     }
 
     /**
+     *
+     * params
+     * return HashMap for which the number of  vulnerability components (/location) is linked to the name of the component
+     * throws
+     */
+    public List<String> xEltsOfList(List<String[]> listToSplit, int refElt){
+        List<String> extractedList=new ArrayList<>();
+        int index=0;
+        for (index=0;index<listToSplit.size();index++){
+            extractedList.add((listToSplit.get(index))[refElt]);
+        }
+
+
+
+        return extractedList;
+    }
+
+
+    /**
      * testing the number of patch fetch in each monthly bulletin
      * param
      * return
@@ -628,6 +745,8 @@ public class BulletinImporter {
     private void testFetchingURLs(String path) throws IOException{
         this.path=path;
         vulnerabilityList= new ArrayList<>();
+        List<String[]> upDateTable;
+        List<String> dateList;
         updateReleasedBulletinsList();
         int[] counter=new int[releasedBulletins.size()];
         int totalRef=0;
@@ -641,10 +760,14 @@ public class BulletinImporter {
         int counterOfMismatch=0;
         int totalMatch=0;
 
+        checkForNewBulletin();
+        upDateTable=loadReleasedBulletin(this.path);
+        releasedBulletins=xEltsOfList(upDateTable, 0);
+        dateList=xEltsOfList(upDateTable,1);
         //Get patches and check number
         for (testIndex=0;testIndex<releasedBulletins.size();testIndex++){
 
-            getPatchFromMonthly(releasedBulletins.get(testIndex));
+            getPatchFromMonthly(releasedBulletins.get(testIndex),dateList.get(testIndex));
             System.out.println("Unitary Test--bulletin "+testIndex+":  |"+this.vulnerabilityList.size()+"|"+counter[testIndex]+"|");
             if (this.vulnerabilityList.size()!=counter[testIndex]){
                 System.out.println("---Potential error-Not corresponding to the reference number of bulletins released");

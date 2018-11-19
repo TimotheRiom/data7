@@ -25,8 +25,6 @@ package data7.project;
 import java.util.HashMap;
 import java.util.Map;
 
-import static data7.project.AndroidMetaInf.ANDROID_NVD;
-import static data7.project.AndroidMetaInf.getAndroid;
 import static data7.project.CMetaInf.*;
 
 public class ProjectFactory {
@@ -48,8 +46,6 @@ public class ProjectFactory {
             case SYSTEMD_NVD:
                 mapProject.put(SYSTEMD_NVD,SYSTEMD);
                 return new Project(SYSTEMD_NVD,mapProject);
-            case ANDROID_NVD:
-                return new Project(ANDROID_NVD,getAndroid());
             default:
                 return null;
         }

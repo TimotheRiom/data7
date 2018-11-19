@@ -11,6 +11,9 @@ public class AndroidMetaInf {
 
     public static final Map<String, MetaInformation> getAndroid() {
         String[] repo = new String[]{
+                "platform/frameworks/opt/net/wifi",
+                "platform/frameworks/base",
+                "platform/frameworks/av",
                 "kernel/arm64",
                 "kernel/bcm",
                 "kernel/build",
