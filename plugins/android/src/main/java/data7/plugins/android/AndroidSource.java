@@ -21,14 +21,35 @@ public class AndroidSource extends Data7Source {
 
     private Map<String, Map<String, List<String>>> getCommitFromBulletin() throws IOException {
         //TODO Tim
-        BulletinImporter bulletinImp=new BulletinImporter();
+        BulletinImporter bulletinImp=new BulletinImporter( );
         return bulletinImp.cveCompHashSorter();
     }
 
     @Override
     public void process() {
         try {
-            addToData7(getCommitFromBulletin());
+            //sort
+            Map<String, Map<String, List<String>>> allBulletinVuln = getCommitFromBulletin();
+            Map<String, Map<String, List<String>>> selectedVuln =new HashMap<>();
+
+            allBulletinVuln.forEach((cve, componenthashes) -> {
+
+                Map<String, List<String>> toCVESelectedComp = new HashMap<>();
+                componenthashes.forEach((component, hashes) -> {
+                    if(this.dataset.getProject().getSubProjects().containsKey(component) ){
+                        toCVESelectedComp.put(component,hashes);
+                    }else{
+                        //System.out.println(component+" component is not considered but present in Bulletin");
+                    }
+                });
+                if(!toCVESelectedComp.isEmpty()) {
+                    selectedVuln.put(cve, toCVESelectedComp);
+                }
+
+
+
+            });
+            addToData7(selectedVuln);
 
         }catch (IOException e){
             System.out.println(e);
@@ -45,8 +66,14 @@ public class AndroidSource extends Data7Source {
 
     private void addToData7(Map<String, Map<String, List<String>>> mapCveToComponentListHash) {
         mapCveToComponentListHash.forEach((cve, componenthashes) -> {
+            if (cve.equals("CVE-2015-6623")){
+                System.out.println("Empty repo ?");
+            }
             Vulnerability vulnerability = dataset.getVulnerabilitySet().getVulnerabilityDataset().get(cve);
             if (vulnerability != null) {
+                if (cve.equals("CVE-2015-6623")){
+                    System.out.println("Empty repo ?");
+                }
                 componenthashes.forEach((component, hashes) -> {
                     Map<String, Commit> componentFixes = vulnerability.getPatchingCommits().getOrDefault(component, new HashMap<>());
                     for(String hash:hashes){

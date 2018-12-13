@@ -85,7 +85,11 @@ public class GitAnalysis extends Data7Source {
             } catch (InterruptedException | GitAPIException | IOException e) {
                 e.printStackTrace();
             } finally {
-                System.err.println("error for component" + component + " : " + errornb);
+                if (errornb==0) {
+                    System.out.println("error for component " + component + " : " + errornb);
+                }else{
+                    System.err.println("error for component " + component + " : " + errornb);
+                }
                 executor.shutdown();
                 componentAlreadyProcessedHash.put(component, alreadyProcessed);
             }

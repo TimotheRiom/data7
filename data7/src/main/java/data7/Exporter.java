@@ -130,7 +130,7 @@ public class Exporter {
 
                     Element bugsId = doc.createElement("bugs");
                     vuln.getValue().getBugIds().forEach((component, listid) -> {
-                        Element componentel = doc.createElement(component);
+                        Element componentel = doc.createElement(component.replace("/",""));
                         for (String id : listid) {
                             Element bugId = doc.createElement("id");
                             bugId.appendChild(doc.createTextNode(id));
@@ -143,7 +143,7 @@ public class Exporter {
 
                     Element patchs = doc.createElement("patches");
                     vuln.getValue().getPatchingCommits().forEach((component, listpatches) -> {
-                        Element componentel = doc.createElement(component);
+                        Element componentel = doc.createElement(component.replace("/","_"));
                         for (Map.Entry<String, Commit> fix : listpatches.entrySet()) {
                             Element patch = doc.createElement("commit");
                             patch.setAttribute("hash", fix.getKey());

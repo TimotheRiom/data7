@@ -25,7 +25,7 @@ public class AndroidImporter {
     public static void main(String[] args) throws ParseException, IOException, ClassNotFoundException {
         if (args.length == 0) {
             args=new String[1];
-            args[0]= "/home/user1/Desktop/Tools/Vulnerabilities/test/tempoRepo/";
+            args[0]= "/home/user1/Desktop/Tools/Vulnerabilities/test/tempoRepo2/";
         }
         if (args.length == 1) {
             ResourcesPath rpath = new ResourcesPath(args[0]);

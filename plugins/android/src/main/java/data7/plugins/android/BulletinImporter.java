@@ -1,6 +1,7 @@
 package data7.plugins.android;
 
 
+import data7.project.Project;
 import miscUtils.Misc;
 import org.eclipse.jgit.util.FileUtils;
 
@@ -35,7 +36,7 @@ public class BulletinImporter {
     private List<List<String>> vulnerabilityList;
 
     //TODO to change for each device
-    private  String localDLFolder= "/home/user1/Desktop/Tools/Vulnerabilities/test/listBulletins";
+    private  String localDLFolder= "/home/user1/Desktop/Tools/Vulnerabilities/test/tempoRepo2/listBulletins";
 
     /**
      *
@@ -849,7 +850,6 @@ public class BulletinImporter {
     */
     public static void main(String[] args) throws IOException{
         //String folderToDownloadIn= "/home/user1/Desktop/Tools/Vulnerabilities/test/listBulletins";
-
 
         BulletinImporter bImporter=new BulletinImporter();
 
